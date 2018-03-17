@@ -34,7 +34,7 @@
 										 
 #define      DS18B20_PIN_WR_1()     do { DS18B20_GPIO_PORT->BSRRL = DS18B20_PIN; } while(0)                    //输出1
 #define      DS18B20_PIN_WR_0()     do { DS18B20_GPIO_PORT->BSRRH = DS18B20_PIN; } while(0)                    //输出0
-#define      DS18B20_PIN_RD()	    ((DS18B20_GPIO_PORT->IDR &= DS18B20_PIN) >> DS18B20_PIN_NUM)	           //读取IO脚状态返回0或1			 
+#define      DS18B20_PIN_RD()	    ((DS18B20_GPIO_PORT->IDR & DS18B20_PIN) >> DS18B20_PIN_NUM)	               //读取IO脚状态返回0或1			 
 
 
 // 传感器工作的精度

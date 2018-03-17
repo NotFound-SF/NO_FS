@@ -182,7 +182,7 @@ static  void  FlashDriverTask (void *p_arg)
 							  (CPU_TS      *) NULL,
 							  (OS_ERR      *) &err);
 		
-		if (OS_ERR_NONE != err)
+		if (OS_ERR_NONE != err)                                       // 出错后重新等待
 			continue;
 		
 		// 根据接收的到的请求执行相应的操作
@@ -196,7 +196,6 @@ static  void  FlashDriverTask (void *p_arg)
 			BSP_FLASH_BufferWrite(((uint8_t*)request)+sizeof(FLASH_DRIVER_MSG),
 								  request->addr, dat_len);
 		}
-		
 		
 		// 接触请求任务阻塞
 		OSTaskSemPost(request->task_tcb,

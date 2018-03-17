@@ -87,6 +87,7 @@
 #include "bsp_acs712.h"
 #include "bsp_esp8266.h"
 #include "flash_driver.h"
+#include "bsp_key.h"
 
 
 

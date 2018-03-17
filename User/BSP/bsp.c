@@ -246,6 +246,7 @@
 void  BSP_Init (void)
 {
 	BSP_LED_Init(); 
+	BSP_KEY_Init();
 	BSP_ESP8266_Init();
 	BSP_FSMC_COMMON_Init();
 	BSP_SRAM_Init();

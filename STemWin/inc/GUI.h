@@ -365,6 +365,7 @@ const GUI_RECT * GUI_SetClipRect  (const GUI_RECT * pRect);
 void         GUI_SetRefreshHook   (void (* pFunc)(void));
 void         GUI_SetControlHook   (void (* pFunc)(int LayerIndex, int Cmd));
 void         MainTask             (void);
+void         SettingMainTask      (void);
 
 /*********************************************************************
 *
