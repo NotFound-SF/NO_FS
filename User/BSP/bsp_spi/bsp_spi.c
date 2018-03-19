@@ -6,7 +6,6 @@
 
 #include "bsp_spi.h"
 
-
 /*
 *********************************************************************************************************
 *                                              LOCAL DEFINES
@@ -28,8 +27,8 @@ typedef enum {
 typedef struct {
 	OS_SEM          SemLock;                                       // 该SPI端口独占信号量                  
     OS_SEM          SemWait;                                       // SPI读等待信号量                                 
-	CPU_INT16U      RdBufLen;                                      // SPI需要读取的数据长度                           
-	CPU_INT16U      WrBufLen;                                      // SPI需要写入的数据长度                           
+	CPU_INT16S      RdBufLen;                                      // SPI需要读取的数据长度                           
+	CPU_INT16S      WrBufLen;                                      // SPI需要写入的数据长度                           
 	CPU_INT08U      *RdBufPtr;                                     // SPI读缓冲区的头指针                             
 	CPU_INT08U      *WrBufPtr;                                     // SPI读写缓冲区的头指针                             
 	Read_Write_Flag Operation;                                     // 读写操作标志flag     
@@ -117,7 +116,7 @@ void BSP_SPIx_Init(void)
 	SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;                  // 高位先行
 	SPI_InitStructure.SPI_DataSize = SPI_DataSize_8b;                   // 数据宽度8bit
 	SPI_InitStructure.SPI_Direction = SPI_Direction_2Lines_FullDuplex;  // 工作在全双工模式
-	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_2;  // 时钟分屏数
+	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_128;  // 时钟分屏数
 	SPI_InitStructure.SPI_CRCPolynomial = 7;                            // CRC校验
 	
 	SPI_Init(BSP_SPIx_PORT, &SPI_InitStructure);                       
@@ -307,6 +306,7 @@ void BSP_SPI_WriteOnly(uint8_t *WriteBuff, uint16_t BuffLen)
 	BSP_SPIx_DevStatus.WrBufPtr = WriteBuff;
 	BSP_SPIx_DevStatus.Operation = SPIxWriteOnly;
 	
+	
 	// 开启读写中断
 	
 	BSP_SPIx_PORT->CR2 |= DEF_BIT_06;                                         // 开启接收中断
@@ -319,6 +319,7 @@ void BSP_SPI_WriteOnly(uint8_t *WriteBuff, uint16_t BuffLen)
 	          (OS_OPT  ) OS_OPT_PEND_BLOCKING,                                 // 阻塞等待                        
 	          (CPU_TS *) 0,
 	          (OS_ERR *) &err);
+	
 	
 	// 关闭读写中断
 	
@@ -413,6 +414,7 @@ static __IO uint16_t SPIx_SR_Temp;                               // 在中断中暂存
 static __IO uint16_t SPIx_DR_NULL;                               // 当不需要接收数据时存储接收寄存器值达到清标志位目的
 static      OS_ERR   err;                                        // 信号量错误标志
 
+
 void BSP_SPIx_IRQHandler(void)
 {
 	// 读取状态寄存器与中断寄存器
@@ -423,7 +425,7 @@ void BSP_SPIx_IRQHandler(void)
 	// 表示发送缓冲区为空
 	
 	if ((SPIx_SR_Temp & BSP_SPIx_TXE_MASK) && (SPIx_CR2_Temp & DEF_BIT_07)) {
-		
+
 		switch (BSP_SPIx_DevStatus.Operation) {
 			
 			// 当为只写或者为读写时需要将缓冲区填充到SPI数据寄存器
@@ -432,8 +434,7 @@ void BSP_SPIx_IRQHandler(void)
 			case SPIxWriteOnly:
 				if (BSP_SPIx_DevStatus.WrBufLen> 0) {                                   
 					BSP_SPIx_PORT -> DR = *(BSP_SPIx_DevStatus.WrBufPtr);               // 将缓冲区填充到SPI数据寄存器
-					BSP_SPIx_DevStatus.WrBufPtr++;                                      // 缓冲指针加一       
-					BSP_SPIx_DevStatus.WrBufLen--;                                      // 缓冲长度减一	
+					BSP_SPIx_DevStatus.WrBufPtr++;                                      // 缓冲指针加一       	
 				}					
 				break;
 				
@@ -442,12 +443,12 @@ void BSP_SPIx_IRQHandler(void)
 			case SPIxReadOnly:
 				if (BSP_SPIx_DevStatus.WrBufLen> 0) {         
 					BSP_SPIx_PORT -> DR = BSP_SPI_NOUSE;                                // 只读时只需要填入垃圾值
-					BSP_SPIx_DevStatus.WrBufLen--;                                      // 缓冲长度减一
 				}
 				break;
 		}		
 		
-		if (0 == BSP_SPIx_DevStatus.WrBufLen) {                                                                      
+		BSP_SPIx_DevStatus.WrBufLen--;                                                  // 缓冲长度减一
+		if (0 == BSP_SPIx_DevStatus.WrBufLen) {       
 			BSP_SPIx_PORT->CR2 &= ~DEF_BIT_07;                                          // 关发送中断
 		}		
 	}
@@ -462,17 +463,18 @@ void BSP_SPIx_IRQHandler(void)
 			
 			case SPIxReadWrite:
 			case SPIxReadOnly:
-				*BSP_SPIx_DevStatus.RdBufPtr = BSP_SPIx_PORT -> DR;                   // 将数据写入缓存区
-				BSP_SPIx_DevStatus.RdBufPtr++;
-				BSP_SPIx_DevStatus.RdBufLen--;
+				if (BSP_SPIx_DevStatus.RdBufLen > 0) {
+					*BSP_SPIx_DevStatus.RdBufPtr = BSP_SPIx_PORT -> DR;                   // 将数据写入缓存区
+					BSP_SPIx_DevStatus.RdBufPtr++;
+				}
 				break;
 				
 			case SPIxWriteOnly:
-				SPIx_DR_NULL = BSP_SPIx_PORT -> DR;                                   // 空读以清除该标准
-				BSP_SPIx_DevStatus.RdBufLen--;                                        
+				SPIx_DR_NULL = BSP_SPIx_PORT -> DR;                                   // 空读以清除该标准                    
 				break;
 		}		
 		
+		BSP_SPIx_DevStatus.RdBufLen--;
 		// SPI通讯结束点
 		
 		if (0 == BSP_SPIx_DevStatus.RdBufLen) {                               
@@ -480,7 +482,6 @@ void BSP_SPIx_IRQHandler(void)
 					  (OS_OPT  )  OS_OPT_POST_1,
 					  (OS_ERR *)  &err);
 		}
-		
 	}
 	
 }

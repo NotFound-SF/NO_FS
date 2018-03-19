@@ -156,12 +156,6 @@ static  void  AppTaskStart (void *p_arg)
 #endif
 	
 //	OSSchedRoundRobinCfg(DEF_TRUE, 10, &err);                  //配置时间片轮转调度
-
-
-	// 开机延时一段时间
-	OSTimeDlyHMSM( 0, 0, 0, 800,
-		           OS_OPT_TIME_HMSM_STRICT,
-                   &err );
 	
 	
 	// 检测按键是否按下选择进入设置线程

@@ -1,6 +1,7 @@
 
 #include "bsp_spi.h"
 #include "bsp_w25q128.h"
+#include "includes.h"
 
 
 
@@ -26,7 +27,6 @@ static        volatile                  DSTATUS TM_FATFS_FLASH_SPI_Stat = STA_NO
 static void  BSP_FLASH_WriteEnable(void);
 static void  BSP_FLASH_WaitForWriteEnd(void);
 static void  BSP_FLASH_PageWrite(uint8_t *pBuffer, uint32_t WriteAddr, uint16_t NumByteToWrite);
-
 
 
 
@@ -301,23 +301,25 @@ void BSP_FLASH_BufferWrite(uint8_t *pBuffer, uint32_t WriteAddr, uint16_t NumByt
 	count = SPI_FLASH_PageSize - Addr;
 	NumOfPage =  NumByteToWrite / SPI_FLASH_PageSize;
 	NumOfSingle = NumByteToWrite % SPI_FLASH_PageSize;
-
+	
     if (Addr == 0) {                                                              // 表明地址页对齐的
+		
 		if (NumOfPage == 0) {
 			BSP_FLASH_PageWrite(pBuffer, WriteAddr, NumByteToWrite);
 		} else {                                                                  // 表示有完整页
 		
 			// 写完整的页
-			
 			while (NumOfPage--) {                                                 // 写完整页
 				BSP_FLASH_PageWrite(pBuffer, WriteAddr, SPI_FLASH_PageSize);
 				WriteAddr +=  SPI_FLASH_PageSize;
 				pBuffer += SPI_FLASH_PageSize;
 			}
-
+	
 			BSP_FLASH_PageWrite(pBuffer, WriteAddr, NumOfSingle);
+	
 		}
 	} else {                                                                      // 表明地址未页对齐的
+		BSP_UART_Printf(BSP_UART_ID_1, "working7\r\n");
 		if (NumOfPage == 0) {                                                     // 没有完整页
 			if (NumOfSingle > count) {
 				temp = NumOfSingle - count;
@@ -374,6 +376,7 @@ void BSP_FLASH_BufferWrite(uint8_t *pBuffer, uint32_t WriteAddr, uint16_t NumByt
 
 void BSP_FLASH_BufferRead(uint8_t *pBuffer, uint32_t ReadAddr, uint32_t NumByteToRead)
 {
+	OS_ERR  err;
     SPI_FLASH_CS_LOW();
 
 	// 发送读指令，并且发送读地址
@@ -384,6 +387,9 @@ void BSP_FLASH_BufferRead(uint8_t *pBuffer, uint32_t ReadAddr, uint32_t NumByteT
     SPI_FLASH_SendByte(ReadAddr & 0xFF);
 
 	// 读取缓冲区
+	OSTimeDlyHMSM( 0, 0, 0, 2,
+		           OS_OPT_TIME_HMSM_STRICT,
+                   &err );
 	
 	SPI_FLASH_ReadBuff(pBuffer, NumByteToRead);
 
@@ -674,6 +680,7 @@ static void BSP_FLASH_WaitForWriteEnd(void)
 
 static void BSP_FLASH_PageWrite(uint8_t *pBuffer, uint32_t WriteAddr, uint16_t NumByteToWrite)
 {
+	OS_ERR   err;
 	BSP_FLASH_WriteEnable();
 
 	SPI_FLASH_CS_LOW();
@@ -697,13 +704,17 @@ static void BSP_FLASH_PageWrite(uint8_t *pBuffer, uint32_t WriteAddr, uint16_t N
 	
 	// 将缓冲区数据写入
 	
-	SPI_FLASH_WriteBuff(pBuffer, NumByteToWrite);              
+	SPI_FLASH_WriteBuff(pBuffer, NumByteToWrite);       
 	
 	SPI_FLASH_CS_HIGH();
 
 	// 等待也写入结束
 	
 	BSP_FLASH_WaitForWriteEnd();
+	
+	OSTimeDlyHMSM( 0, 0, 0, 2,
+		           OS_OPT_TIME_HMSM_STRICT,
+                   &err );
 }
 
 

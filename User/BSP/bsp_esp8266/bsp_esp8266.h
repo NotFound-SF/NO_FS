@@ -43,11 +43,11 @@
 *********************************************************************************************************
 */
 
-void    BSP_ESP8266_Init(void);
-void    BSP_ESP8266_Server_Init(void);
-void    utoa(uint32_t dat, char *str);
-void    BSP_ESP8266_Server_Write(uint8_t *data, uint8_t len, uint8_t id);
-uint8_t BSP_ESP8266_Server_Read(uint8_t *data, uint8_t *id, OS_TICK timeout);
+void     BSP_ESP8266_Init(void);
+void     BSP_ESP8266_Server_Init(void);
+void     utoa(uint32_t dat, char *str);
+void     BSP_ESP8266_Server_Write(uint8_t *data, uint16_t len, uint8_t id);
+uint16_t BSP_ESP8266_Server_Read(uint8_t *data, uint8_t *id, OS_TICK timeout);
 
 
 

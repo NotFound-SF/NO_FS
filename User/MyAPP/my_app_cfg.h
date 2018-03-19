@@ -10,6 +10,7 @@
 
 #include "includes.h"
 #include "stm32f4xx.h"
+#include "info_manager.h"
 
 /*
 *********************************************************************************************************
@@ -17,7 +18,7 @@
 *********************************************************************************************************
 */
 
-#define          LOCAL_SETTING_TASK_PRIO                  16u
+#define          LOCAL_SETTING_TASK_PRIO                  8u
 
 #define          NORMAL_WORKING_TASK_PRIO                 16u
 
@@ -31,7 +32,7 @@
 
 #define          APP_TASK_LED_PRIO                        20u
 
-#define          APP_TASK_MOTOR_PRIO                      17u
+#define          APP_TASK_MOTOR_PRIO                      17u 
 
 /*
 *********************************************************************************************************
@@ -39,7 +40,7 @@
 *********************************************************************************************************
 */
 
-#define          LOCAL_SETTING_TASK_STK_SIZE              128
+#define          LOCAL_SETTING_TASK_STK_SIZE              256u              // 调用了get_info() / set_info()函数需要很大的堆栈
 
 #define          NORMAL_WORKING_TASK_STK_SIZE             128
 
@@ -51,7 +52,7 @@
   
 #define          APP_TASK_LED_STK_SIZE                    128u
 
-#define          APP_TASK_WIFI_STK_SIZE                   128u
+#define          APP_TASK_WIFI_STK_SIZE                   256u              // 调用了get_info() / set_info()函数需要很大的堆栈
 
 #define          APP_TASK_SENSOR_STK_SIZE                 128u
 

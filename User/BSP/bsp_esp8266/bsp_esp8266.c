@@ -158,11 +158,11 @@ void BSP_ESP8266_Server_Init(void)
 * Note(s)     : none.
 *********************************************************************************************************
 */
-uint8_t BSP_ESP8266_Server_Read(uint8_t *data, uint8_t *id, OS_TICK timeout)
+uint16_t BSP_ESP8266_Server_Read(uint8_t *data, uint8_t *id, OS_TICK timeout) 
 {
-	char    lenStr[4];                                             // 所以读取个数不能超999byte
-	uint8_t index = 0;
-	uint8_t dataLen = 0, cpyIndex = 0, readLen;
+	char     lenStr[5];                                             // 所以读取个数不能超9999byte
+	uint16_t index = 0;                                             // 索引
+	uint16_t dataLen = 0, cpyIndex = 0, readLen;
 	
 	readLen = ReadData(wifi_buf, timeout);                         // 永久等待
 	if (0 == readLen)
@@ -197,7 +197,7 @@ uint8_t BSP_ESP8266_Server_Read(uint8_t *data, uint8_t *id, OS_TICK timeout)
 *
 * Description : 模块作为服务器的写数据函数
 *
-* Argument(s) : data存储读取到的数据，id是通信设备的编号[0,4],len是要发送的长度
+* Argument(s) : data存储读取到的数据，id是通信设备的编号[0,4],len是要发送的长度最大为2048
 *
 * Return(s)   : none
 *
@@ -206,16 +206,16 @@ uint8_t BSP_ESP8266_Server_Read(uint8_t *data, uint8_t *id, OS_TICK timeout)
 * Note(s)     : none.
 *********************************************************************************************************
 */
-void BSP_ESP8266_Server_Write(uint8_t *data, uint8_t len, uint8_t id)
+void BSP_ESP8266_Server_Write(uint8_t *data, uint16_t len, uint8_t id)
 {
-	char send_len[6];
-	char send_cmd[26] = "AT+CIPSEND= ,";
+	char send_len[6];                            // 最大能接受2048,硬件限制 
+	char send_cmd[26] = "AT+CIPSEND= ,";         // 逗号前的空格不能省略
 
 	// 因为id范围是0-4
 	send_cmd[11] = id+'0';
 	
-	// 转换为字符串
-	utoa(len, send_len);
+	// 将整数转换为字符串
+	utoa(len, send_len); 
 	// 拼接字符串
 	strcat(send_cmd, send_len);
 	
