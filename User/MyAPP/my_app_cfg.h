@@ -42,15 +42,13 @@
 
 #define          LOCAL_SETTING_TASK_STK_SIZE              256u              // 调用了get_info() / set_info()函数需要很大的堆栈
 
-#define          NORMAL_WORKING_TASK_STK_SIZE             128
-
 #define          APP_TASK_TOUCH_STK_SIZE                  128u
 
-#define          APP_TASK_GUI_DEMO_STK_SIZE               2048u
+#define          APP_TASK_GUI_DEMO_STK_SIZE               512u
 
 #define          APP_TASK_MOTOR_STK_SIZE                  128u
   
-#define          APP_TASK_LED_STK_SIZE                    128u
+#define          APP_TASK_LED_STK_SIZE                    64u
 
 #define          APP_TASK_WIFI_STK_SIZE                   256u              // 调用了get_info() / set_info()函数需要很大的堆栈
 

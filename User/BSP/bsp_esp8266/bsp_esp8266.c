@@ -27,8 +27,10 @@ static     char                   wifi_buf[WIFI_BUFF_LEN];                     /
 *********************************************************************************************************
 */
 
+
 static      void     BSP_ESP8266_Rst(void);
 static      void     WriteCmd(char *cmd);
+static      void     str_append(char *str_d, char *str_s);
 static      void     WriteData(uint8_t *dat, uint16_t len);
 static      uint16_t ReadData(char *data, OS_TICK timeOut);
 
@@ -55,6 +57,7 @@ static void init_delay(uint8_t count)
 		while (time--);
 	}
 }
+
 
 
 /*
@@ -104,6 +107,14 @@ void  BSP_ESP8266_Init(void)
 
 /*
 *********************************************************************************************************
+**                                         服务器模式相关函数
+*********************************************************************************************************
+*/
+
+
+
+/*
+*********************************************************************************************************
 *                                        BSP_ESP8266_Server_Init()
 *
 * Description : 将wifi模块配置为TCP服务器，模式，但是最多只能连接5个设备，无数据交互8s后主动断开
@@ -121,11 +132,7 @@ void BSP_ESP8266_Server_Init(void)
 	WriteCmd("ATE0");                                                  // 不回显 
 	ReadData(wifi_buf, 1000);                                          // 等待模块回应
 	
-	WriteCmd("AT+CWMODE=2");                                           // 设置为热点模式 
-	ReadData(wifi_buf, 1000);                                          // 等待模块回应
-	
-	BSP_ESP8266_Rst();                                                 // 需要重启
-	WriteCmd("ATE0");                                                  // 不回显
+	WriteCmd("AT+CWMODE_CUR=2");                                       // 设置为热点模式 
 	ReadData(wifi_buf, 1000);                                          // 等待模块回应
 	
 	// 配置热点
@@ -229,6 +236,247 @@ void BSP_ESP8266_Server_Write(uint8_t *data, uint16_t len, uint8_t id)
 }
 
 
+
+
+
+
+/*
+*********************************************************************************************************
+**                                         客户端模式相关函数
+*********************************************************************************************************
+*/
+
+/*
+*********************************************************************************************************
+*                                        BSP_ESP8266_Client_Init()
+*
+* Description : 将wifi模块配置为TCP客户端模式，直接变为穿透模式，因为穿透模式即使已经掉线也能自动重新连接
+*
+* Return(s)   : none
+*
+* Caller(s)   : Application
+*
+* Note(s)     : none.
+*********************************************************************************************************
+*/
+
+void BSP_ESP8266_Client_Init(void) 
+{
+	WriteCmd("ATE0");                                                  // 不回显 
+	ReadData(wifi_buf, 1000);                                          // 等待模块回应
+	
+	WriteCmd("AT+CWMODE_CUR=1");                                       // 设置为station模式不会存储到Flash 
+	ReadData(wifi_buf, 1000);                                          // 等待模块回应
+}
+
+
+
+
+/*
+*********************************************************************************************************
+*                                        BSP_ESP8266_WIFIF_connect_AP()
+*
+* Description : 将wifi模块连接到wifi热点
+*
+* Argument    : ssid 热点名字， pwd热点密码（均为字符串形式）
+*
+* Return(s)   : 0表示连接失败， 1表示连接成功
+*
+* Caller(s)   : Application
+*
+* Note(s)     : none.
+*********************************************************************************************************
+*/
+
+uint8_t BSP_ESP8266_WIFI_connect(char *ssid, char *pwd)
+{
+	uint8_t status = 0x00;                             // 连接状态
+	char connect_cmd[80] = "AT+CWJAP_CUR=\"";          // AT+CWJAP_CUR="
+
+	// 拼接字符串成连接wifi形式 connect_cmd --> AT+CWJAP_CUR="ssid"," pwd"
+	
+    str_append(connect_cmd, ssid);                     // AT+CWJAP_CUR="ssid   
+    str_append(connect_cmd, "\",\"");                  // AT+CWJAP_CUR="ssid","   
+    str_append(connect_cmd, pwd);                      // AT+CWJAP_CUR="ssid","pwd 
+    str_append(connect_cmd, "\"");                     // AT+CWJAP_CUR="ssid","pwd"
+	
+	// 确保不会回显
+	
+	WriteCmd("ATE0");                                  // 不回显 
+	ReadData(wifi_buf, 1000);                          // 等待模块回应
+	
+	// 发送连接热点指令,等待返回
+	
+	WriteCmd(connect_cmd);
+	ReadData(wifi_buf, 20000);                         // WIFI GOT IP或者返回错误码，失败等待时间很长
+	
+	// 判断是否连接成功
+	
+	wifi_buf[14] = '\0';                               // WIFI CONNECTED
+	
+	if (0 == strcmp(wifi_buf, "WIFI CONNECTED")) {
+		status = 0x01;                                 // 表示连接成功
+		ReadData(wifi_buf, 16000);                     // 连接成功和获取IP有一段时间
+	} else
+		status = 0x00;
+	
+	
+	ReadData(wifi_buf, 3000);                          // 返回一个OK/FAIL
+	
+	return status;
+}
+
+
+
+
+/*
+*********************************************************************************************************
+*                                        BSP_ESP8266_WIFIF_connect_status()
+*
+* Description : 查询wifi模块连接热点的状态
+*
+* Argument    : none
+*
+* Return(s)   : 0表示连接失败， 1表示连接成功
+*
+* Caller(s)   : Application
+*
+* Note(s)     : none.
+*********************************************************************************************************
+*/
+
+uint8_t BSP_ESP8266_WIFI_connect_status(void)
+{
+	// 确保不会回显
+	
+	WriteCmd("ATE0");                                  // 不回显 
+	ReadData(wifi_buf, 1000);                          // 等待模块回应
+	
+	// 发送发起读取状态指令
+	
+	WriteCmd("AT+CWJAP_CUR?");
+	ReadData(wifi_buf, 1000);                          // 读取模块返回的状态
+	
+	wifi_buf[5] = '\0';                                // 使其成为一个字符串
+	
+	if (0 == strcmp(wifi_buf, "No AP"))
+		return  0x00;
+	
+	return 0x01;
+}
+
+
+
+/*
+*********************************************************************************************************
+*                                        BSP_ESP8266_WIFIF_connect_server()
+*
+* Description : 连接到服务器，并且设置为穿透模式
+*
+* Argument    : none
+*
+* Return(s)   : 0表示连接失败， 1表示连接成功
+*
+* Caller(s)   : Application
+*
+* Note(s)     : none.
+*********************************************************************************************************
+*/
+
+uint8_t BSP_ESP8266_connect_server(void)
+{
+	
+	// 确保不会回显
+	
+	WriteCmd("ATE0");                                  // 不回显 
+	ReadData(wifi_buf, 1000);                          // 等待模块回应
+	
+	// 设置为单链接模式,穿透模式必须为单链接模式
+	
+	WriteCmd("AT+CIPMUX=0");         
+	ReadData(wifi_buf, 1000);                          // 读取模块返回的状态
+
+	
+	// 发送连接到服务器的指令
+	
+	WriteCmd(CLIENT_CONFIG);
+	ReadData(wifi_buf, 1000);                          // 读取模块返回的状态
+	
+	wifi_buf[7] = '\0';                                // 使其成为一个字符串
+	
+	if (0 == strcmp(wifi_buf, "CONNECT")) {
+		WriteCmd("AT+CIPMODE=1");                      // 设置为透传
+		ReadData(wifi_buf, 1000);                      // 会返回一个ok
+		WriteCmd("AT+CIPSEND");                        // 允许发送数据
+		ReadData(wifi_buf, 1000);                      // 等待返回>
+		return  0x01;
+	} else if (0 == strcmp(wifi_buf, "ALREADY"))       // 也表示连接成功
+		return 0x01;
+		
+	return 0x00;
+}
+
+
+
+
+
+
+
+/*
+*********************************************************************************************************
+*                                        BSP_ESP8266_Client_Read()
+*
+* Description : 从服务器端读取数据，会阻塞由timeout觉定
+*
+* Argument(s) : data存储读取到的数据
+*
+* Return(s)   : n表示读取到的数据长度
+*
+* Caller(s)   : Application
+*
+* Note(s)     : none.
+*********************************************************************************************************
+*/
+uint16_t BSP_ESP8266_Client_Read(uint8_t *data, OS_TICK timeout) 
+{	
+	uint16_t readLen, index;
+	
+	readLen = ReadData(wifi_buf, timeout);                         // 永久等待
+	
+	// 将数据拷贝到缓冲区
+	
+	for (index = 0; index < readLen; index++)
+		data[index] = wifi_buf[index];
+
+	return readLen;
+}
+
+
+/*
+*********************************************************************************************************
+*                                        BSP_ESP8266_Client_Write()
+*
+* Description : 模块向服务器的写数据
+*
+* Argument(s) : data存储读取到的数据,len是要发送的长度最大为2048
+*
+* Return(s)   : none
+*
+* Caller(s)   : Application
+*
+* Note(s)     : none.
+*********************************************************************************************************
+*/
+void BSP_ESP8266_Client_Write(uint8_t *data, uint16_t len)
+{
+	// 发送整数数据，不用回车加换行，为穿透模式
+	
+	WriteData(data, len);
+}
+
+
+
+
 /*
 *********************************************************************************************************
 * 该函数将无符号32位整数转换为字符串
@@ -260,6 +508,8 @@ void utoa(uint32_t dat, char *str)
     // 字符串结束标志
     *str = 0;
 }
+
+
 
 
 
@@ -360,6 +610,30 @@ static void  BSP_ESP8266_Rst(void)
 	WriteCmd("AT+RST");
 	ReadData(wifi_buf, 1000);                                  // 等待模块回应
 	init_delay(120);
+}
+
+
+
+
+/*
+*********************************************************************************************************
+*                                        str_append()
+*
+* Description : 将第二个字符串追加到第一个字符末尾
+*
+* Argument(s) : str_d为第一字符串，其必须能保证容纳第二个字符串， str_s为第二个字符串
+*
+* Return(s)   : none
+*
+* Caller(s)   : Application
+*
+* Note(s)     : none.
+*********************************************************************************************************
+*/
+
+static void str_append(char *str_d, char *str_s)
+{
+    strcpy(str_d+strlen(str_d), str_s);
 }
 
 

@@ -15,6 +15,7 @@
 #include "info_manager.h"     
 #include "my_app_cfg.h"
 #include  "user_info.h"
+#include  "stdlib.h"
 
 /*
 *********************************************************************************************************
@@ -36,13 +37,13 @@ static  OS_TCB   AppTaskLedTCB;
 *********************************************************************************************************
 */
 
-static  CPU_STK  LocalSettingTaskStk[LOCAL_SETTING_TASK_STK_SIZE];
+static  CPU_STK  *LocalSettingTaskStk;
 
-static  CPU_STK  AppTaskGUIDemoStk[APP_TASK_GUI_DEMO_STK_SIZE];
+static  CPU_STK  *AppTaskGUIDemoStk;
 
-static  CPU_STK  AppTaskLedStk[APP_TASK_LED_STK_SIZE];
+static  CPU_STK  *AppTaskLedStk;
 
-static  CPU_STK  AppTaskWifiStk[APP_TASK_WIFI_STK_SIZE];
+static  CPU_STK  *AppTaskWifiStk;
 
 
 
@@ -66,7 +67,7 @@ static  void  LocalSettingTask (void *p_arg);
 *********************************************************************************************************
 */
 
-#define    SETTING_TASK_Q_SIZE     6                   // 设置线程的消息队列长度 
+#define    SETTING_TASK_Q_SIZE     4                   // 设置线程的消息队列长度 
 
 // APP --> MCU
 #define    ADD_PHONE_NUM           0x63
@@ -89,11 +90,11 @@ typedef enum{
 *********************************************************************************************************
 */
 
-static  InfoStruct              user_info;           // 使用该内存区域存放Flash中的用户数据
-
 static  OS_MEM                  MyPartition;
 
-static  CPU_INT08U              MyPartitionStorage[SETTING_TASK_Q_SIZE][USER_INFO_SIZE];  // 用于消息队列传递消息    
+static  InfoStruct              *user_info;                                    // 使用该内存区域存放Flash中的用户数据
+
+static  CPU_INT08U              *MyPartitionStorage;                           // 用于消息队列传递消息    
 
    
 
@@ -127,6 +128,16 @@ void  LocalSettingTaskCreate (void)
 {
 	OS_ERR      err;
 	
+	// malloc申请内存空间
+	
+	user_info = (InfoStruct*)malloc(sizeof(InfoStruct));
+	MyPartitionStorage = (CPU_INT08U*)malloc(SETTING_TASK_Q_SIZE*USER_INFO_SIZE*sizeof(CPU_INT08U));
+	
+	LocalSettingTaskStk = (CPU_STK*)malloc(LOCAL_SETTING_TASK_STK_SIZE * sizeof(CPU_STK));
+	AppTaskGUIDemoStk = (CPU_STK*)malloc(APP_TASK_GUI_DEMO_STK_SIZE * sizeof(CPU_STK));
+	AppTaskLedStk = (CPU_STK*)malloc(APP_TASK_LED_STK_SIZE * sizeof(CPU_STK));
+	AppTaskWifiStk = (CPU_STK*)malloc(APP_TASK_WIFI_STK_SIZE * sizeof(CPU_STK));
+
 	// 创建内存管理分区空间
 	OSMemCreate(&MyPartition, 
 				 "MyPartition", 
@@ -251,7 +262,7 @@ static  void  AppTaskWifi (void *p_arg)
 	uint8_t data[60];
 	uint8_t id = 0;
 	uint8_t *msg;
-	uint8_t *source = (uint8_t*)(&user_info);
+	uint8_t *source = (uint8_t*)user_info;
 	OS_ERR  err;
 	uint16_t index;
 	Option_Type opt;
@@ -260,7 +271,7 @@ static  void  AppTaskWifi (void *p_arg)
 	(void)p_arg;
 	
 	// 现将Flash中的数据读入内存
-	get_user_info(&user_info, &AppTaskWifiTCB); 
+	get_user_info(user_info, &AppTaskWifiTCB); 
 	
 	
 	// 将wifi模块设置为服务器模式
@@ -275,28 +286,28 @@ static  void  AppTaskWifi (void *p_arg)
 			switch (data[0]) {                                        // 首字节表示操作命令
 				case ADD_PHONE_NUM:
 					opt = Save_Option;                                // 表示一个写操作
-					phone_add(&user_info, data+2, data[1]);
+					phone_add(user_info, data+2, data[1]);
 					break;
 				
 				case ADD_WIFI_INFO:
 					opt = Save_Option;                                // 表示一个写操作
-					wifi_setSSID(&user_info, data+3, data[1]);        // 添加wifi热点名
-					wifi_setPWD(&user_info, data+3+data[1], data[2]); // 添加wifi密码信息
+					wifi_setSSID(user_info, data+3, data[1]);        // 添加wifi热点名
+					wifi_setPWD(user_info, data+3+data[1], data[2]); // 添加wifi密码信息
 					break;
 				
 				case DEL_PHONE_NUM:
 					opt = Save_Option;                                // 表示一个写操作
-					phone_del(&user_info, data[1]);
+					phone_del(user_info, data[1]);
 					break;
 				
 				case CLAEN_PHONE_NUM:
 					opt = Save_Option;                                // 表示一个写操作
-					phone_clean(&user_info);
+					phone_clean(user_info);
 					break;
 				
 				case REQUEST:                                         // 表示请求信息
 					opt = Get_Option;                                 // 表示回复操作
-					BSP_ESP8266_Server_Write(source, sizeof(user_info), id);  
+					BSP_ESP8266_Server_Write(source, sizeof(InfoStruct), id);  
 					break;
 			}
 			
@@ -325,11 +336,10 @@ static  void  AppTaskWifi (void *p_arg)
 								(OS_MSG_SIZE  ) USER_INFO_SIZE,                 // 消息长度
 								(OS_OPT       ) OS_OPT_POST_FIFO,               // FIFO队列
 								(OS_ERR      *) &err);
+				} else {
+					// 申请不到空间不做任何操作
 				}
-				
-			} else {
-				// 申请不到空间不做任何操作
-			}
+			} 
 
 		}
 		
@@ -407,8 +417,6 @@ static  void  LocalSettingTask (void *p_arg)
 							   (OS_MSG_SIZE *) &msg_size,
 							   (CPU_TS      *) NULL,
 							   (OS_ERR      *) &err);
-		
-		BSP_UART_Printf(BSP_UART_ID_1, "进入设置任务\r\n");
 		
 		// 将空间中的数据写入Flash,阻塞等待至写完成
 		save_user_info(info_dat, &LocalSettingTaskTCB);

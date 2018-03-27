@@ -11,15 +11,14 @@
 */
 
 #include "my_app_cfg.h"
-#include "bsp_key.h"
+#include  "user_info.h"
+#include  "stdlib.h"
 
 /*
 *********************************************************************************************************
 *                                                 TCB
 *********************************************************************************************************
 */
-
-static  OS_TCB   NormalWorkingTaskTCB;
 
 static  OS_TCB   AppTaskGUIDemoTCB;
 
@@ -41,17 +40,15 @@ static  OS_TCB   AppTaskWifiTCB;
 *********************************************************************************************************
 */
 
-static  CPU_STK  NormalWorkingTaskStk[LOCAL_SETTING_TASK_STK_SIZE];
+static  CPU_STK  *AppTaskGUIDemoStk;                       // 该空间在堆上分配
 
-static  CPU_STK  AppTaskGUIDemoStk[APP_TASK_GUI_DEMO_STK_SIZE];
+static  CPU_STK  *AppTaskTouchStk;                         // 该空间在堆上分配
 
-static  CPU_STK  AppTaskTouchStk[APP_TASK_TOUCH_STK_SIZE];
+static  CPU_STK  *AppTaskWifiStk;                          // 该空间在堆上分配
 
 static  CPU_STK  AppTaskLedStk[APP_TASK_LED_STK_SIZE];
 
 static  CPU_STK  AppTaskMotorStk[APP_TASK_MOTOR_STK_SIZE];
-
-static  CPU_STK  AppTaskWifiStk[APP_TASK_WIFI_STK_SIZE];
 
 static  CPU_STK  AppTaskSensorStk[APP_TASK_SENSOR_STK_SIZE];
 
@@ -66,8 +63,6 @@ static  CPU_STK  AppTaskSensorStk[APP_TASK_SENSOR_STK_SIZE];
 
 static  void  AppTaskSensor (void *p_arg);
 
-static  void  NormalWorkingTask (void *p_arg);
-
 static  void  AppTaskLed   (void *p_arg);
 
 static  void  AppTaskTouch  (void *p_arg);
@@ -75,6 +70,18 @@ static  void  AppTaskTouch  (void *p_arg);
 static  void  AppTaskMotor  (void *p_arg);
 
 static  void  AppTaskWifi   (void *p_arg);
+
+
+
+/*
+*********************************************************************************************************
+*                                       LOCAL VARIABLES
+*********************************************************************************************************
+*/
+
+static  uint8_t                 server_flag = 0x00;            
+
+static  InfoStruct              *user_info;                // 使用该内存区域存放Flash中的用户数据
 
 
 
@@ -104,62 +111,18 @@ static  void  AppTaskWifi   (void *p_arg);
 *********************************************************************************************************
 */
 
+
 CPU_BOOLEAN  NormalWorkingTaskCreate (void)
 {
 	OS_ERR      err;
 	
-	// 创建管理flash的线程
+	// malloc申请内存空间
 	
-	OSTaskCreate((OS_TCB    *)&NormalWorkingTaskTCB,              /* Create the Sensor task                                 */
-				(CPU_CHAR   *)"Normal Working Task",
-				(OS_TASK_PTR ) NormalWorkingTask,
-				(void       *) 0,
-				(OS_PRIO     ) NORMAL_WORKING_TASK_PRIO,
-				(CPU_STK    *)&NormalWorkingTaskStk[0],
-				(CPU_STK_SIZE) NORMAL_WORKING_TASK_STK_SIZE / 10,
-				(CPU_STK_SIZE) NORMAL_WORKING_TASK_STK_SIZE,
-				(OS_MSG_QTY  ) 0,                                // 无内建消息队列
-				(OS_TICK     ) 0u,
-				(void       *) 0,
-				(OS_OPT      )(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
-				(OS_ERR     *)&err);
-			 
-	if(err == OS_ERR_NONE) {
-		return DEF_OK;
-	}
+	user_info = (InfoStruct*)malloc(sizeof(InfoStruct));
+	AppTaskGUIDemoStk = (CPU_STK*)malloc(APP_TASK_GUI_DEMO_STK_SIZE * sizeof(CPU_STK));
+	AppTaskTouchStk = (CPU_STK*)malloc(APP_TASK_TOUCH_STK_SIZE * sizeof(CPU_STK));
+	AppTaskWifiStk = (CPU_STK*)malloc(APP_TASK_WIFI_STK_SIZE * sizeof(CPU_STK));
 	
-	return DEF_FAIL;
-}
-
-
-/*
-*********************************************************************************************************
-*********************************************************************************************************
-**                                         LOCAL FUNCTIONS
-*********************************************************************************************************
-*********************************************************************************************************
-*/
-
-/*
-*********************************************************************************************************
-*                                        NormalWorkingTask()
-*
-* Description : 该任务为常规任务
-*
-* Argument(s) : p_arg is the argument passed to 'AppTaskStart()' by 'OSTaskCreate()'.
-*
-* Return(s)   : NONE
-*
-* Caller(s)   : none
-*
-* Note(s)     : none.
-*********************************************************************************************************
-*/
-
-
-static  void  NormalWorkingTask (void *p_arg)
-{
-	OS_ERR      err;
 	
 	//创建应用任务,emwin的官方示例函数 GUIDEMO_Main
 		
@@ -243,6 +206,27 @@ static  void  NormalWorkingTask (void *p_arg)
 //		BSP_UART_Printf(BSP_UART_ID_1, "AppTaskLed OK");
     }
 	
+	
+	//创建WIFI任务
+	
+	OSTaskCreate((OS_TCB     *)&AppTaskWifiTCB,                                        
+				(CPU_CHAR   *)"Wifi", 									                     
+				(OS_TASK_PTR ) AppTaskWifi,									                        
+			    (void       *) 0,																
+				(OS_PRIO     ) APP_TASK_WIFI_PRIO,					
+				(CPU_STK    *)&AppTaskWifiStk[0],						
+				(CPU_STK_SIZE) APP_TASK_WIFI_STK_SIZE / 10,				
+			    (CPU_STK_SIZE) APP_TASK_WIFI_STK_SIZE,        		
+				(OS_MSG_QTY  ) 0u,
+				(OS_TICK     ) 0u,
+				(void       *) 0,
+	     		(OS_OPT      )(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
+				(OS_ERR     *)&err);															
+
+	if(err==OS_ERR_NONE) {
+//		BSP_UART_Printf(BSP_UART_ID_1, "AppWifi OK");
+    }
+	
 #if 0		
 	
 	//创建步进电机任务
@@ -267,30 +251,22 @@ static  void  NormalWorkingTask (void *p_arg)
 	
 
 	
-	//创建WIFI任务
 	
-	OSTaskCreate((OS_TCB     *)&AppTaskWifiTCB,                                        
-				(CPU_CHAR   *)"Wifi", 									                     
-				(OS_TASK_PTR ) AppTaskWifi,									                        
-			    (void       *) 0,																
-				(OS_PRIO     ) APP_TASK_WIFI_PRIO,					
-				(CPU_STK    *)&AppTaskWifiStk[0],						
-				(CPU_STK_SIZE) APP_TASK_WIFI_STK_SIZE / 10,				
-			    (CPU_STK_SIZE) APP_TASK_WIFI_STK_SIZE,        		
-				(OS_MSG_QTY  ) 0u,
-				(OS_TICK     ) 0u,
-				(void       *) 0,
-	     		(OS_OPT      )(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
-				(OS_ERR     *)&err);															
-
-	if(err==OS_ERR_NONE) {
-//		BSP_UART_Printf(BSP_UART_ID_1, "AppWifi OK");
-    }
 	
 #endif
 	
 	
+	return DEF_OK;
 }
+
+
+/*
+*********************************************************************************************************
+*********************************************************************************************************
+**                                         LOCAL FUNCTIONS
+*********************************************************************************************************
+*********************************************************************************************************
+*/
 
 
 
@@ -456,25 +432,63 @@ static  void  AppTaskMotor  (void *p_arg)
 */
 static  void  AppTaskWifi (void *p_arg)
 {
-	int len = 0;
-	uint8_t data[60];
-	uint8_t id = 0;
+	uint8_t ssid[31], pwd[31];
+	uint8_t wifi_status = 0x00;
+	uint8_t dat_len = 0;
 	OS_ERR  err;
 	
 	(void)p_arg;
-
 	
-	//BSP_ESP8266_Server_Init();
+	// 先将Flash中的数据读入内存
+	
+	get_user_info(user_info, &AppTaskWifiTCB); 
+	
+	// 设置为连接模式
+	
+	BSP_ESP8266_Client_Init();
+	
+	dat_len = wifi_getSSID(user_info, ssid);   // 获取热点名字
+	
+	if (0 == dat_len) {                         // 永久阻塞,因为不会有任务向该线程发送信号量
+		OSTaskSemPend(0, OS_OPT_PEND_BLOCKING, NULL, &err);
+	}
+	
+	wifi_getPWD(user_info, pwd);               // 获取热点密码
+	
+	// 开始连接
+	wifi_status = BSP_ESP8266_WIFI_connect((char*)ssid, (char*)pwd);
+	
+	while (0x00 == wifi_status) {
+		wifi_status = BSP_ESP8266_WIFI_connect((char*)ssid, (char*)pwd);
+		
+		OSTimeDlyHMSM( 0, 0, 4, 0,              // 线程休眠一段时间
+		               OS_OPT_TIME_HMSM_STRICT,
+                       &err );
+	}
+	
+	// 连接到服务器
+	server_flag = BSP_ESP8266_connect_server();
+	
+	while (0x00 == server_flag) {
+		server_flag = BSP_ESP8266_connect_server();
+		
+		OSTimeDlyHMSM( 0, 0, 6, 0,              // 线程休眠一段时间
+		               OS_OPT_TIME_HMSM_STRICT,
+                       &err );
+		
+		BSP_UART_Printf(BSP_UART_ID_1,"try.....\r\n");
+		
+	}
+	
+	// 表明连接到服务器成功
 	
 	while(DEF_ON) {
-		//len = BSP_ESP8266_Server_Read(data, &id);
-		
-		//BSP_UART_Printf(BSP_UART_ID_1, "len: %d\tid: %d\t:%s\r\n", len, id, data);
-			
 		
 		OSTimeDlyHMSM( 0, 0, 6, 0,
 		               OS_OPT_TIME_HMSM_STRICT,
                        &err );
+		
+		BSP_UART_Printf(BSP_UART_ID_1,"连接服务器成功\r\n");
 		
 	}
 	
