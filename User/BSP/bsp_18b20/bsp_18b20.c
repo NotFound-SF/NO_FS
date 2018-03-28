@@ -15,6 +15,7 @@
 */
 
 static      __IO           uint16_t tempBuf;                                      //缓存读取到的温度   
+static      OS_MUTEX       temp_mutex;
 
 
 /*
@@ -57,9 +58,14 @@ static  uint8_t         BSP_18B20_ReadByte(void);
 
 CPU_BOOLEAN BSP_18B20_Init(void)
 {
+	OS_ERR      err;
 	CPU_BOOLEAN status;
 	
 	BSP_18B20_GPIO_Init();                                //初始化端口
+	
+	// 创建改变全局缓冲区的互斥信号量
+	
+	OSMutexCreate(&temp_mutex, "temp mutex", &err);
 	
 	// 确保该进程整个时序独占该定时器
 	
@@ -106,8 +112,9 @@ CPU_BOOLEAN BSP_18B20_Init(void)
 *********************************************************************************************************
 */
 
-CPU_BOOLEAN BSP_18B20_GetTemp(uint16_t *ptemp)
+CPU_BOOLEAN BSP_18B20_GetTemp(void)
 {
+	OS_ERR        err;
 	uint16_t      temp;
 	CPU_BOOLEAN   status;
 	
@@ -130,14 +137,17 @@ CPU_BOOLEAN BSP_18B20_GetTemp(uint16_t *ptemp)
 		BSP_18B20_WriteByte(0xBE);                       //发送读温度命令
 		temp  = BSP_18B20_ReadByte();                    //读温度低字节
 		temp |= (uint16_t)BSP_18B20_ReadByte()<<8;       //读温度高字节
-		tempBuf = temp;
-		*ptemp = temp;
 	} else {
 		status = DEF_FAIL;
 	}
 	
 	// 释放定时器
 	Timing_Unlock();                                     //进程完整时序结束释放定时器
+	
+	// 修改了缓冲区的值
+	OSMutexPend(&temp_mutex, 0, OS_OPT_PEND_BLOCKING, NULL, &err);
+	tempBuf = temp;
+	OSMutexPost(&temp_mutex, OS_OPT_POST_NO_SCHED, &err);
 	
 	return status;
 }
@@ -162,7 +172,14 @@ CPU_BOOLEAN BSP_18B20_GetTemp(uint16_t *ptemp)
 
 uint16_t   BSP_18B20_GetTempFast(void)
 {
-		return tempBuf;
+	OS_ERR   err;
+	uint16_t temp;
+	
+	OSMutexPend(&temp_mutex, 0, OS_OPT_PEND_BLOCKING, NULL, &err);
+	temp = tempBuf;
+	OSMutexPost(&temp_mutex, OS_OPT_POST_NO_SCHED, &err);
+	
+	return temp;
 }
 
 
@@ -185,7 +202,6 @@ uint16_t   BSP_18B20_GetTempFast(void)
 float BSP_18B20_TempTran(uint16_t temp)
 {
 	float  dat;
-	
 	
 	// 获取温度的实际数值，不包含符号位
 	

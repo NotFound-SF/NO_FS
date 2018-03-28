@@ -22,7 +22,7 @@
 
 #define         AP_CONFIG                           "AT+CWSAP_CUR=\"ESP8266\",\"12345678\",5,3"
 #define         AP_SERVER_CONFIG                    "AT+CIPSERVER=1,2046"
-#define         CLIENT_CONFIG                       "AT+CIPSTART=\"TCP\",\"192.168.1.101\",2048"
+#define         CLIENT_CONFIG                       "AT+CIPSTART=\"TCP\",\"192.168.1.100\",2048"
 
 #define         REAL_SERVER_ADDR                                                // 真正服务器地址
 #define         WIFI_UART_PORT                      BSP_UART_ID_4 
