@@ -1,9 +1,9 @@
 电流传感器使用ADC通道1即 PA0
 
 
-
-
-
+继电器        PA7
+雨滴检测      PE2
+开机按键检测  PF9
 SPI_FLASH    PG8、 PB3、 PB4、 PB5
 步进电机：    PC6、 PC7、 PC8、 PC9
 触摸屏  :     PB0、 PB1、 PB2、 PA5、 PF11
@@ -109,7 +109,7 @@ PD15
 
 PE0 
 PE1
-
+PE2
 PE3 
 PE4
 
@@ -132,6 +132,7 @@ PF3
 PF4       
 PF5       
 
+PF9
 PF10
 PF11  
 PF12       

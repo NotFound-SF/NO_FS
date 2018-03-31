@@ -24,7 +24,4 @@ void SettingMainTask(void)
 }
 
 
-// USER START (Optionally insert additional public code)
-// USER END
-
 /*************************** End of file ****************************/

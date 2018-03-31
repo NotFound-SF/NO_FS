@@ -26,13 +26,19 @@
 
 #define          APP_TASK_GUI_DEMO_PRIO                   18u
 
-#define          APP_TASK_SENSOR_PRIO                      2u                    //确保优先级最高
+#define          APP_TASK_SENSOR_PRIO                      2u                    // 确保优先级最高
+
+#define          APP_TASK_FIRE_PRIO                        4u                    // 确保优先级较高
 
 #define	         APP_TASK_WIFI_PRIO                        6u
 
 #define          APP_TASK_LED_PRIO                        20u
 
 #define          APP_TASK_MOTOR_PRIO                      17u 
+
+#define          APP_TASK_COLLECTION_PRIO                 17u                    // 传感器采集任务
+
+#define          APP_TASK_HANDLE_PRIO                     17u                    // 控制自动开关灯窗操作
 
 /*
 *********************************************************************************************************
@@ -53,6 +59,12 @@
 #define          APP_TASK_WIFI_STK_SIZE                   256u              // 调用了get_info() / set_info()函数需要很大的堆栈
 
 #define          APP_TASK_SENSOR_STK_SIZE                 128u
+
+#define          APP_TASK_COLLECTION_STK_SIZE             128u
+
+#define          APP_TASK_HANDLE_STK_SIZE                 128u
+
+#define          APP_TASK_FIRE_STK_SIZE                   128u
 
 
 

@@ -38,6 +38,8 @@
 #define   BSP_MODULE
 #include  <bsp.h>
 #include  <os.h>
+#include  "bsp_rain.h"
+#include  "bsp_power_switch.h"
 
 
 /*
@@ -246,6 +248,8 @@
 void  BSP_Init (void)
 {
 	BSP_LED_Init(); 
+	BSP_POWER_SWITCH_Init();
+	BSP_Rain_Init();
 	BSP_KEY_Init();
 	BSP_ESP8266_Init();
 	BSP_FSMC_COMMON_Init();
@@ -256,7 +260,7 @@ void  BSP_Init (void)
 	BSP_Timing_Init();
 	BSP_18B20_Init();
 //	BSP_GA6_Init();
-//	BSP_ADC_Init();
+	BSP_ADC_Init();
 	BSP_LCD_Init();
 	XPT2046_Init();
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_CRC, ENABLE); 

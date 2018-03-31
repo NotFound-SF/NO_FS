@@ -46,7 +46,7 @@ float BSP_ACS_GetU_Real(void)
 	
 	// 当前在传感器端口检测到的电压值
 	
-	temp = (float)ADC_REFERENCE_VOL*BSP_ADC_GetDat(BSP_ADC_CH1)/ADC_RESOLUTION;
+	temp = (float)ADC_REFERENCE_VOL*BSP_ADC_GetDat(BSP_ADC_CH3)/ADC_RESOLUTION;
 	
 	// 转换为电流值
 	
@@ -84,7 +84,7 @@ float BSP_ACS_GetS_Real(void)
 	
 	// 当前在传感器端口检测到的电压值
 	
-	temp = (float)ADC_REFERENCE_VOL*BSP_ADC_GetDat(BSP_ADC_CH1)/ADC_RESOLUTION;
+	temp = (float)ADC_REFERENCE_VOL*BSP_ADC_GetDat(BSP_ADC_CH3)/ADC_RESOLUTION;
 	
 	// 转换为电流值
 	
@@ -119,7 +119,7 @@ float BSP_ACS_Get_AC(void)
 	
 	for (index = 0; index < AC_SAMPLE_COUNT; index++) {
 		
-		temp = BSP_ADC_GetDat(BSP_ADC_CH1);
+		temp = BSP_ADC_GetDat(BSP_ADC_CH3);
 		
 		if (temp < CURRENT_ZERO_ADC) {                             // 电流方向为负
 			temp = CURRENT_ZERO_ADC - temp;
