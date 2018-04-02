@@ -1,6 +1,8 @@
 电流传感器使用ADC通道1即 PA0
 
 
+esp8266      PB10, PB11(USART3)、PC1(ENA)
+蜂鸣器        PG7
 继电器        PA7
 雨滴检测      PE2
 开机按键检测  PF9
@@ -9,7 +11,7 @@ SPI_FLASH    PG8、 PB3、 PB4、 PB5
 触摸屏  :     PB0、 PB1、 PB2、 PA5、 PF11
 ADC：         PA0(USART4_TX)、 PA1(USART4_RX)、 PA4（DCMI_HREF）   
 LED：         PE3、 PE4、 PG9
-UART_DEBUG：  PA9、 PA10
+UART_DEBUG：  PA9、 PA10       串口1
 EEPROM:       PB8、 PB9
 DS18B20：     PA15
 GSM(GA6)：    PA2、  PA3
@@ -86,7 +88,10 @@ PB5
 
 PB8
 PB9
+PB10
+PB11
 
+PC1
 
 PC6
 PC7

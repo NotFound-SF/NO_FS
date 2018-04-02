@@ -1,5 +1,6 @@
-#ifndef   __BSP_MQ2_H
-#define   __BSP_MQ2_H
+
+#ifndef   __BSP_BUZZER_H
+#define   __BSP_BUZZER_H
 
 /*
 *********************************************************************************************************
@@ -16,13 +17,13 @@
 *********************************************************************************************************
 */
 
+#define      BUZZER_PIN             	    GPIO_Pin_7
+#define      BUZZER_GPIO_CLK                RCC_AHB1Periph_GPIOG              /* ¶Ë¿ÚÊ±ÖÓ                  */
+#define      BUZZER_GPIO_PORT               GPIOG
 
-#define   HIGH_LEVEL_VALUE               2500
+      
 
-typedef enum {
-	MQ2_High_Level = 0x00,
-	MQ2_Normal_Level = 0x01
-} MQ2_State;
+
 
 /*
 *********************************************************************************************************
@@ -30,13 +31,13 @@ typedef enum {
 *********************************************************************************************************
 */
 
+void         BSP_BUZZER_Init                (void);
 
-MQ2_State   BSP_MQ2_State              (void);
+void         BSP_BUZZER_On                  (void);
 
-
-#endif    //__BSP_MQ2_H
-
-
+void         BSP_BUZZER_Off                 (void);
 
 
 
+
+#endif    //__BSP_BUZZER_H

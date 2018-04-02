@@ -19,7 +19,10 @@
 #include  "user_info.h"
 #include  "stdlib.h"
 #include  "string.h"
+#include  "bsp_ga6.h"
 
+
+extern  OS_TCB   AppTaskStartTCB;                                           //开始任务任务控制块
 
 
 /*
@@ -46,6 +49,8 @@ static  OS_TCB   AppTaskCollectionTCB;
 
 static  OS_TCB   AppTaskFireTCB;
 
+static  OS_TCB   AppTaskBuzzerTCB;
+
 
 
 
@@ -70,6 +75,8 @@ static  CPU_STK  AppTaskSensorStk[APP_TASK_SENSOR_STK_SIZE];
 static  CPU_STK  AppTaskHandleStk[APP_TASK_HANDLE_STK_SIZE];
 
 static  CPU_STK  AppTaskFireStk[APP_TASK_FIRE_STK_SIZE];
+
+static  CPU_STK  AppTaskBuzzerStk[APP_TASK_BUZZER_STK_SIZE];
 
 static  CPU_STK  AppTaskCollectionStk[APP_TASK_COLLECTION_STK_SIZE];
 
@@ -100,6 +107,7 @@ static  void  AppTaskFire       (void *p_arg);
 
 static  void  AppTaskCollectin  (void *p_arg);
 
+static  void  AppTaskBuzzer     (void *p_arg);
 
 
 
@@ -154,6 +162,8 @@ static       InfoStruct           *user_info;             // 使用该内存区域存放F
 
 static       Light_Level          light_state;            // 供给传感器采集任务和处理任务共享，光照强度水平
 
+static       uint8_t              fire_flag = 0;          // 如果火灾被处理就会被置位一
+
 
 
 /*
@@ -204,6 +214,10 @@ CPU_BOOLEAN  NormalWorkingTaskCreate (void)
 	// 做简单的初始化
 	memset(&local_status, 0x00, sizeof(Local_status));
 	
+	// 先将Flash中的数据读入内存
+	get_user_info(user_info, &AppTaskStartTCB); 
+	
+	
 	//创建应用任务,emwin的官方示例函数 GUIDEMO_Main
 		
 	OSTaskCreate((OS_TCB     *)&AppTaskGUIDemoTCB,                                        
@@ -234,7 +248,7 @@ CPU_BOOLEAN  NormalWorkingTaskCreate (void)
 				(CPU_STK    *)&AppTaskTouchStk[0],
 				(CPU_STK_SIZE) APP_TASK_TOUCH_STK_SIZE / 10,
 				(CPU_STK_SIZE) APP_TASK_TOUCH_STK_SIZE,
-				(OS_MSG_QTY  ) 5u,
+				(OS_MSG_QTY  ) 0u,
 				(OS_TICK     ) 0u,
 				(void       *) 0,
 				(OS_OPT      )(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
@@ -255,7 +269,7 @@ CPU_BOOLEAN  NormalWorkingTaskCreate (void)
 				(CPU_STK    *)&AppTaskSensorStk[0],
 				(CPU_STK_SIZE) APP_TASK_SENSOR_STK_SIZE / 10,
 				(CPU_STK_SIZE) APP_TASK_SENSOR_STK_SIZE,
-				(OS_MSG_QTY  ) 5u,
+				(OS_MSG_QTY  ) 0u,
 				(OS_TICK     ) 0u,
 				(void       *) 0,
 				(OS_OPT      )(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
@@ -276,7 +290,28 @@ CPU_BOOLEAN  NormalWorkingTaskCreate (void)
 			    (CPU_STK    *)&AppTaskLedStk[0],
 			    (CPU_STK_SIZE) APP_TASK_LED_STK_SIZE / 10,
 			    (CPU_STK_SIZE) APP_TASK_LED_STK_SIZE,
-			    (OS_MSG_QTY  ) 5u,
+			    (OS_MSG_QTY  ) 0u,
+			    (OS_TICK     ) 0u,
+			    (void       *) 0,
+			    (OS_OPT      )(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
+			    (OS_ERR     *)&err);
+			 
+    if(err==OS_ERR_NONE) {
+//		BSP_UART_Printf(BSP_UART_ID_1, "AppTaskLed OK");
+    }
+	
+	
+	 //创建蜂鸣器子进程
+	
+    OSTaskCreate((OS_TCB     *)&AppTaskBuzzerTCB,              /* Create the LED task                                 */
+	  		    (CPU_CHAR   *)"App Task Buzzer",
+			    (OS_TASK_PTR ) AppTaskBuzzer,
+			    (void       *) 0,
+			    (OS_PRIO     ) APP_TASK_BUZZER_PRIO,
+			    (CPU_STK    *)&AppTaskBuzzerStk[0],
+			    (CPU_STK_SIZE) APP_TASK_BUZZER_STK_SIZE / 10,
+			    (CPU_STK_SIZE) APP_TASK_BUZZER_STK_SIZE,
+			    (OS_MSG_QTY  ) 0u,
 			    (OS_TICK     ) 0u,
 			    (void       *) 0,
 			    (OS_OPT      )(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
@@ -439,10 +474,6 @@ static  void  AppTaskWifi (void *p_arg)
 	Local_status request;                     // 保存APP端发送的数据
 	
 	(void)p_arg;
-	
-	// 先将Flash中的数据读入内存
-	
-	get_user_info(user_info, &AppTaskWifiTCB); 
 	
 	// 设置为连接模式
 	
@@ -802,8 +833,9 @@ static  void  AppTaskHandle     (void *p_arg)
 		
 		// 处理火灾报警操作，当发生火灾报警就想火灾报警任务发生信号量
 		
-		if (0x0F == temp_state.warning_flag) {
-			 
+		if (0x0F == temp_state.warning_flag && 0x00 == fire_flag) {
+			fire_flag = 0x01;                                                    // 非常重要，防止传感器任务重复发送信号量 
+			OSTaskSemPost(&AppTaskFireTCB, OS_OPT_POST_NONE, &err);              // 会发生任务调度
 		}
 		
 		
@@ -831,7 +863,9 @@ static  void  AppTaskHandle     (void *p_arg)
 
 static  void  AppTaskFire       (void *p_arg)
 {
-	OS_ERR          err;
+	OS_ERR        err;
+	uint8_t       phone[16];
+	uint8_t       p_lenth, index, warning;
 	
 	(void) p_arg;
 		
@@ -840,15 +874,51 @@ static  void  AppTaskFire       (void *p_arg)
 
 	while(DEF_ON) {
 		
-		// 等待内建信号量
+		// 阻塞等待内建信号量
+		
+		OSTaskSemPend(0, OS_OPT_PEND_BLOCKING, NULL, &err);
+		
+		// 开始处理火灾报警
 		
 		
-		OSTimeDlyHMSM( 0, 0, 2, 100,
-		               OS_OPT_TIME_HMSM_STRICT,
-                       &err );
+		
+		// 鸣响蜂鸣器
+		OSTaskSemPost(&AppTaskBuzzerTCB, OS_OPT_POST_NONE, &err);         // 会发生任务调度
+		
+		// 开窗，应该还有断气，但是没有硬件外设
+		OSSemPend(&StatusSemLock, 0, OS_OPT_PEND_BLOCKING, NULL, &err);   // 占用信号量
+		local_status.window = 100;                                           
+		OSSemPost(&StatusSemLock, OS_OPT_POST_1, &err);                   // 释放信号量
+		
+		// 发送短信
+//		for (index = 0; index < 32; index++) {
+//			p_lenth = phone_get(user_info, phone, index);
+//			
+//			if (p_lenth > 0) {
+//				if (REG_NORMAL == BSP_GA6_GetRegSt()) {                       // 模块注册成功
+//					BSP_GA6_SenTextMSG((char*)phone, "Fire Alarm");
+//				}
+//			}
+//		}
+
+		BSP_UART_Printf(BSP_UART_ID_1, "发送短信\r\n");
+		
+		// 保证能取消酱爆，以及警报不会被重复触发
+		
+		do {
+			OSSemPend(&StatusSemLock, 0, OS_OPT_PEND_BLOCKING, NULL, &err);   // 占用信号量
+			warning = local_status.warning_flag;
+			OSSemPost(&StatusSemLock, OS_OPT_POST_1, &err);                   // 释放信号量
+			
+			OSTimeDlyHMSM( 0, 0, 0, 10,
+						   OS_OPT_TIME_HMSM_STRICT,
+                           &err );
+			
+		} while (0x0F == warning);
+		
+		fire_flag = 0x00;                                                     // 允许再次被触发
 		
 	}
-	
 	
 }
 
@@ -903,6 +973,55 @@ static  void  AppTaskMotor  (void *p_arg)
 	
 }
 
+
+
+
+/*
+*********************************************************************************************************
+*                                          BUZZER TASK
+*
+* Description : 该任务负债在发送火灾时冥想蜂鸣器
+*
+* Arguments   : p_arg   is the argument passed to 'AppTaskStart()' by 'OSTaskCreate()'.
+*
+* Returns     : none
+*
+* Notes       : none
+*********************************************************************************************************
+*/
+
+static  void  AppTaskBuzzer (void *p_arg)
+{
+	OS_ERR     err;
+	uint8_t    buzzer_flag;
+
+	(void)p_arg;	
+
+	while (DEF_ON) {
+		
+		// 等待火灾报警任务发送信号量
+		
+		OSTaskSemPend(0, OS_OPT_PEND_BLOCKING, NULL, &err);
+				
+		do {
+			
+			OSSemPend(&StatusSemLock, 0, OS_OPT_PEND_BLOCKING, NULL, &err);   // 占用信号量
+			buzzer_flag = local_status.warning_flag;
+			OSSemPost(&StatusSemLock, OS_OPT_POST_1, &err);                   // 释放信号量
+			
+			
+			BSP_UART_Printf(BSP_UART_ID_1, "蜂鸣器报警\r\n");
+			
+			OSTimeDlyHMSM( 0, 0, 1, 0,
+						   OS_OPT_TIME_HMSM_STRICT,
+                           &err );
+			
+			
+		} while (0x0F == buzzer_flag);
+		
+		// 关闭蜂鸣器
+	}
+}
 
 
 
@@ -1239,31 +1358,32 @@ static void _cbDialog(WM_MESSAGE * pMsg) {
                 }
                 break; // ID_CHECKBOX_3
 
-                case ID_BUTTON_0:
-                    switch(NCode) {
-                        case WM_NOTIFICATION_CLICKED:   // 按键被按下时
+			case ID_BUTTON_0:
+				switch(NCode) {
+					case WM_NOTIFICATION_CLICKED:   // 按键被按下时
 
-                            break;
+						break;
 
-                        case WM_NOTIFICATION_RELEASED:  // 按键释放时
-							button_state++;
-                            button_state &= 0x01;
-                            hItem = WM_GetDialogItem(pMsg->hWin, ID_BUTTON_0);
-                            BUTTON_SetPressed(hItem, button_state);
-                            if (0 == button_state) {
-								OSSemPend(&StatusSemLock, 0, OS_OPT_PEND_BLOCKING, NULL, &err_UI);   // 占用信号量
-								local_status.warning_flag = 0x00;
-								OSSemPost(&StatusSemLock, OS_OPT_POST_1, &err_UI);                   // 释放信号量
-                                BUTTON_SetText(hItem, "FIRE  PRESS");
-                            } else {
-								OSSemPend(&StatusSemLock, 0, OS_OPT_PEND_BLOCKING, NULL, &err_UI);   // 占用信号量
-								local_status.warning_flag = 0x0F;
-								OSSemPost(&StatusSemLock, OS_OPT_POST_1, &err_UI);                   // 释放信号量
-                                BUTTON_SetText(hItem, "ALARM CANCEL");
-                            }
-                            break;
-                    }
-                    break; // ID_BUTTON_0
+					case WM_NOTIFICATION_RELEASED:  // 按键释放时
+						button_state++;
+						button_state &= 0x01;
+						hItem = WM_GetDialogItem(pMsg->hWin, ID_BUTTON_0);
+						BUTTON_SetPressed(hItem, button_state);
+						if (0 == button_state) {
+							OSSemPend(&StatusSemLock, 0, OS_OPT_PEND_BLOCKING, NULL, &err_UI);   // 占用信号量
+							local_status.warning_flag = 0x00;
+							OSSemPost(&StatusSemLock, OS_OPT_POST_1, &err_UI);                   // 释放信号量
+							BUTTON_SetText(hItem, "FIRE  PRESS");
+						} else {
+							OSSemPend(&StatusSemLock, 0, OS_OPT_PEND_BLOCKING, NULL, &err_UI);   // 占用信号量
+							local_status.warning_flag = 0x0F;
+							OSSemPost(&StatusSemLock, OS_OPT_POST_1, &err_UI);                   // 释放信号量
+							BUTTON_SetText(hItem, "ALARM CANCEL");
+						}
+			
+						break;
+				}
+				break; // ID_BUTTON_0
 
             case ID_SLIDER_0:
                 switch(NCode) {

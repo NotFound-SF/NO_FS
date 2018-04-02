@@ -40,6 +40,7 @@
 #include  <os.h>
 #include  "bsp_rain.h"
 #include  "bsp_power_switch.h"
+#include  "bsp_buzzer.h"
 
 
 /*
@@ -247,11 +248,12 @@
 
 void  BSP_Init (void)
 {
+	BSP_ESP8266_Init();
+	BSP_BUZZER_Init();
 	BSP_LED_Init(); 
 	BSP_POWER_SWITCH_Init();
 	BSP_Rain_Init();
 	BSP_KEY_Init();
-	BSP_ESP8266_Init();
 	BSP_FSMC_COMMON_Init();
 	BSP_SRAM_Init();
 	BSP_FLASH_Drivet_Init();       // 会创建一个线程

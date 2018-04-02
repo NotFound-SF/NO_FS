@@ -49,7 +49,7 @@ extern void NormalWorkingTaskCreate (void);
 *********************************************************************************************************
 */
 
-static  OS_TCB   AppTaskStartTCB;                                           //开始任务任务控制块
+OS_TCB   AppTaskStartTCB;                                           //开始任务任务控制块
 
 
 

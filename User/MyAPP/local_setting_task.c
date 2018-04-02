@@ -17,6 +17,9 @@
 #include  "user_info.h"
 #include  "stdlib.h"
 
+
+extern  OS_TCB   AppTaskStartTCB;                                           //开始任务任务控制块
+
 /*
 *********************************************************************************************************
 *                                                 TCB
@@ -146,6 +149,9 @@ void  LocalSettingTaskCreate (void)
 				 USER_INFO_SIZE, 
 				 &err);
 	
+	// 先将Flash中的数据读入内存
+	get_user_info(user_info, &AppTaskStartTCB); 
+	
 	
 	//创建应用任务,emwin的官方示例函数 GUIDEMO_Main
 		
@@ -269,9 +275,6 @@ static  void  AppTaskWifi (void *p_arg)
 	
 	
 	(void)p_arg;
-	
-	// 现将Flash中的数据读入内存
-	get_user_info(user_info, &AppTaskWifiTCB); 
 	
 	
 	// 将wifi模块设置为服务器模式
