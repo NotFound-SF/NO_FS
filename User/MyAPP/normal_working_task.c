@@ -880,8 +880,6 @@ static  void  AppTaskFire       (void *p_arg)
 		
 		// 开始处理火灾报警
 		
-		
-		
 		// 鸣响蜂鸣器
 		OSTaskSemPost(&AppTaskBuzzerTCB, OS_OPT_POST_NONE, &err);         // 会发生任务调度
 		
