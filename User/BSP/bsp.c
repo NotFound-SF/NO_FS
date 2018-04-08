@@ -41,6 +41,7 @@
 #include  "bsp_rain.h"
 #include  "bsp_power_switch.h"
 #include  "bsp_buzzer.h"
+#include  "bsp_light.h"
 
 
 /*
@@ -249,6 +250,7 @@
 void  BSP_Init (void)
 {
 	BSP_ESP8266_Init();
+	BSP_LIGHT_Init();
 	BSP_BUZZER_Init();
 	BSP_LED_Init(); 
 	BSP_POWER_SWITCH_Init();
@@ -257,7 +259,7 @@ void  BSP_Init (void)
 	BSP_FSMC_COMMON_Init();
 	BSP_SRAM_Init();
 	BSP_FLASH_Drivet_Init();       // 会创建一个线程
-//	BSP_MOTOR_Init();
+	BSP_MOTOR_Init();
 	BSP_UART_Init(BSP_UART_ID_1,115200);
 	BSP_Timing_Init();
 	BSP_18B20_Init();

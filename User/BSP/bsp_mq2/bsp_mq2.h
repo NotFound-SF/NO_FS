@@ -17,7 +17,7 @@
 */
 
 
-#define   HIGH_LEVEL_VALUE               2500
+#define   HIGH_LEVEL_VALUE               2700
 
 typedef enum {
 	MQ2_High_Level = 0x00,

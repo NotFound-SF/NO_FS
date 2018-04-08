@@ -44,7 +44,7 @@
 
 #if  defined(ACS712_05B)
 #define    VOL_TO_CURRENT                       185              // 传感器指标，从电压到电流的转换系数单位为(mv/A)
-#define    CURRENT_ZERO_POINT                   1304             // 电流为0时的电压输出，单位mv
+#define    CURRENT_ZERO_POINT                   1260             // 电流为0时的电压输出，单位mv
 #define    CURRENT_ZERO_ADC                     3103             // 电流为0时的ADC值，计算交流电是可以省去浮点运算
 #endif  /* ACS712_05B */
 

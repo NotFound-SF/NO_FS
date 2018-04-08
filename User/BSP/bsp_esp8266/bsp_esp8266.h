@@ -20,7 +20,7 @@
 *********************************************************************************************************
 */
 
-#define         AP_CONFIG                           "AT+CWSAP_CUR=\"ESP8266\",\"12345678\",5,3"
+#define         AP_CONFIG                           "AT+CWSAP_CUR=\"STM32_Device\",\"12345678\",5,3"
 #define         AP_SERVER_CONFIG                    "AT+CIPSERVER=1,2046"
 #define         CLIENT_CONFIG                       "AT+CIPSTART=\"TCP\",\"192.168.1.102\",2048"
 

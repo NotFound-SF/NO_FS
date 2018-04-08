@@ -67,7 +67,7 @@ CPU_BOOLEAN BSP_MOTOR_Init(void)
 	// 创建锁定信号量
 	
 	OSSemCreate((OS_SEM    *)& SemLock,
-                (CPU_CHAR  *)  "I2C SemLock", 
+                (CPU_CHAR  *)  "Motor SemLock", 
 	            (OS_SEM_CTR )  1,
 	            (OS_ERR    *)  &err);
 	

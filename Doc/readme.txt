@@ -1,6 +1,7 @@
 电流传感器使用ADC通道1即 PA0
 
 
+light         PC2          // 高电平亮
 esp8266       PB10, PB11(USART3)、PC1(ENA)
 蜂鸣器        PG7
 继电器        PA7
@@ -9,7 +10,7 @@ esp8266       PB10, PB11(USART3)、PC1(ENA)
 SPI_FLASH     PG8、 PB3、 PB4、 PB5
 步进电机：    PC6、 PC7、 PC8、 PC9
 触摸屏  :     PB0、 PB1、 PB2、 PA5、 PF11
-ADC：         PA0(USART4_TX)、 PA1(USART4_RX)、 PA4（DCMI_HREF）   
+ADC：         PA0(USART4_TX, 烟雾)、 PA1(USART4_RX, 光敏)、 PA4（DCMI_HREF，电流）   
 LED：         PE3、 PE4、 PG9
 UART_DEBUG：  PA9、 PA10       串口1
 EEPROM:       PB8、 PB9
@@ -92,6 +93,7 @@ PB10
 PB11
 
 PC1
+PC2
 
 PC6
 PC7

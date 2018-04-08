@@ -37,6 +37,8 @@ void         BSP_BUZZER_On                  (void);
 
 void         BSP_BUZZER_Off                 (void);
 
+void         BSP_BUZZER_Func                (void);
+
 
 
 

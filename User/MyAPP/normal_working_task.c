@@ -20,6 +20,7 @@
 #include  "stdlib.h"
 #include  "string.h"
 #include  "bsp_ga6.h"
+#include  "bsp_buzzer.h"
 
 
 extern  OS_TCB   AppTaskStartTCB;                                           //开始任务任务控制块
@@ -405,10 +406,7 @@ CPU_BOOLEAN  NormalWorkingTaskCreate (void)
 //		BSP_UART_Printf(BSP_UART_ID_1, "AppWifi OK");
     }
 	
-	
-	
-#if 0		
-	
+		
 	//创建步进电机任务
 	
 	OSTaskCreate((OS_TCB     *)&AppTaskMotorTCB,                                        
@@ -428,13 +426,6 @@ CPU_BOOLEAN  NormalWorkingTaskCreate (void)
 	if(err==OS_ERR_NONE) {
 //		BSP_UART_Printf(BSP_UART_ID_1, "AppTaskMotor OK");
     }
-	
-
-	
-	
-	
-#endif
-	
 	
 	return DEF_OK;
 }
@@ -670,7 +661,7 @@ static  void  AppTaskLed   (void *p_arg)
 		
 		BSP_LED_Toggle(3);
 		
-		OSTimeDlyHMSM( 0, 0, 0, 200,
+		OSTimeDlyHMSM( 0, 0, 0, 500,
 		               OS_OPT_TIME_HMSM_STRICT,
                        &err );
 	}
@@ -798,16 +789,16 @@ static  void  AppTaskHandle     (void *p_arg)
 			
 			if (0x0F == temp_state.led_auto) {
 				if (Light_High_Level == light_state)
-					BSP_LED_Off(1);
+					BSP_LIGHT_Off();
 				else 
-					BSP_LED_On(1);
+					BSP_LIGHT_On();
 					
 			} else {                                                      // 开灯
-                BSP_LED_On(1);                 				
+                BSP_LIGHT_On();                 				
 			}
 			
 		} else {                                                          // 关灯
- 			BSP_LED_Off(1);
+ 			BSP_LIGHT_Off();
 		}
 		
 		// 处理自动关窗操作
@@ -1002,19 +993,11 @@ static  void  AppTaskBuzzer (void *p_arg)
 		OSTaskSemPend(0, OS_OPT_PEND_BLOCKING, NULL, &err);
 				
 		do {
-			
 			OSSemPend(&StatusSemLock, 0, OS_OPT_PEND_BLOCKING, NULL, &err);   // 占用信号量
 			buzzer_flag = local_status.warning_flag;
 			OSSemPost(&StatusSemLock, OS_OPT_POST_1, &err);                   // 释放信号量
 			
-			
-			BSP_UART_Printf(BSP_UART_ID_1, "蜂鸣器报警\r\n");
-			
-			OSTimeDlyHMSM( 0, 0, 1, 0,
-						   OS_OPT_TIME_HMSM_STRICT,
-                           &err );
-			
-			
+			BSP_BUZZER_Func();
 		} while (0x0F == buzzer_flag);
 		
 		// 关闭蜂鸣器
