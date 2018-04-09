@@ -15,7 +15,7 @@ LED：         PE3、 PE4、 PG9
 UART_DEBUG：  PA9、 PA10       串口1
 EEPROM:       PB8、 PB9
 DS18B20：     PA15
-GSM(GA6)：    PA2、  PA3
+GSM(GA6)：    PC12、  PD2
 LCD：         PG12、 PF10
 SRAM:         PE0、 PE1、 PG10
 FSMC：
@@ -69,8 +69,6 @@ PD10       FSMC_D15   排针
 引脚大小排序:
 PA0
 PA1
-PA2
-PA3
 PA4  
 PA5
 
@@ -100,9 +98,12 @@ PC7
 PC8
 PC9
 
+PC12
+
 
 PD0        
-PD1     
+PD1
+PD2
 
 PD8        
 PD9

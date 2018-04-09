@@ -263,7 +263,7 @@ void  BSP_Init (void)
 	BSP_UART_Init(BSP_UART_ID_1,115200);
 	BSP_Timing_Init();
 	BSP_18B20_Init();
-//	BSP_GA6_Init();
+	BSP_GA6_Init();
 	BSP_ADC_Init();
 	BSP_LCD_Init();
 	XPT2046_Init();

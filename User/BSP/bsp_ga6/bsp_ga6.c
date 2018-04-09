@@ -78,7 +78,7 @@ CPU_BOOLEAN  BSP_GA6_Init(void)
 	
 	BSP_UART_Init(GA6_UART_PORT,GA6_UART_BAUD);
 	
-	ReadData(Res, 1000);                                                //等待开机结束
+	ReadData(Res, 2000);                                                //等待开机结束
 	
 	return DEF_OK;
 }
@@ -119,7 +119,7 @@ GA6_Reg_Status BSP_GA6_GetRegSt(void)
 	// 查询状态
 	
 	WriteCmd("AT+CREG?");                          //注册状态查询指令
-	ReadData(Res, 1000);                           //读取模块返回的数据
+	ReadData(Res, 2000);                           //读取模块返回的数据
 		
 	// 解析返回的数据
 	switch (Res[11]) {
@@ -230,6 +230,8 @@ uint8_t BSP_GA6_GetSigQu(void)
 
 CPU_BOOLEAN BSP_GA6_SenTextMSG(char *num, char *str) 
 {
+	uint8_t  m_len;
+	
 	uint8_t      n;
 	char         *ptr = "AT+CMGS=\"";                  //用于合成电话号码
 	uint8_t      end = 0x1A;                           //短息发送结束标志
@@ -250,18 +252,24 @@ CPU_BOOLEAN BSP_GA6_SenTextMSG(char *num, char *str)
 	// 设置短信格式为TEXT格式
 	
 	WriteCmd("AT+CMGF=1");   
-	ReadData(Res, 1000);
+	m_len = ReadData(Res, 2000);
+	Res[m_len] = 0;
+	//BSP_UART_Printf(BSP_UART_ID_1, "%s\r\n", Res);
 	
 	// 设置短信字符格式为GSM格式
 	
 	WriteCmd("AT+CSCS=\"GSM\"");   
-	ReadData(Res, 1000);
+	m_len = ReadData(Res, 2000);
+	Res[m_len] = 0;
+	//BSP_UART_Printf(BSP_UART_ID_1, "%s\r\n", Res);
 	
 	// 设置目标电话号码
 	WriteData((uint8_t *)ptr, strlen(ptr));                   //发送AT+CMGS="
 	WriteData((uint8_t *)num, strlen(num));                  
 	WriteCmd("\"");                       
-	ReadData(Res, 1000);
+	m_len = ReadData(Res, 2000);
+	Res[m_len] = 0;
+	//BSP_UART_Printf(BSP_UART_ID_1, "%s\r\n", Res);
 	
 	// 发送实际内容
 	
@@ -273,6 +281,8 @@ CPU_BOOLEAN BSP_GA6_SenTextMSG(char *num, char *str)
 		
 		// 解析恢复的数据
 		Res[12] = '\0';                                       //返回的数据并不是标准的字符串 
+		
+		//BSP_UART_Printf(BSP_UART_ID_1, "%s\r\n", Res);
 		
 		if(0 == strcmp(Res+7, "ERROR")) {                     //出错反复\r\n+CMS ERROR:500
 			status = DEF_FAIL;

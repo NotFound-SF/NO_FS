@@ -20,9 +20,9 @@
 *********************************************************************************************************
 */
 
-#define      GA6_UART_PORT                      BSP_UART_ID_2
+#define      GA6_UART_PORT                      BSP_UART_ID_5
 #define      GA6_UART_BAUD                      115200
-#define      RES_BUFF_LEN                       26
+#define      RES_BUFF_LEN                       36
 
 
 typedef enum {                                                      /*----------------- I2C工作模式 -------------*/

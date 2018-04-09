@@ -661,7 +661,7 @@ static  void  BSP_UART_GPIO_Init (CPU_INT08U uart_id)
 	
 	gpioInit_RX.GPIO_Mode  = GPIO_Mode_AF;
 	gpioInit_RX.GPIO_OType = GPIO_OType_OD;                    
-	gpioInit_RX.GPIO_PuPd  = GPIO_PuPd_UP;
+	gpioInit_RX.GPIO_PuPd  = GPIO_PuPd_UP;   // 2018/4/9 Ô­À´ÎªUP
 	gpioInit_RX.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(gpioPortRX, &gpioInit_RX);
 }

@@ -880,17 +880,19 @@ static  void  AppTaskFire       (void *p_arg)
 		OSSemPost(&StatusSemLock, OS_OPT_POST_1, &err);                   // 释放信号量
 		
 		// 发送短信
-//		for (index = 0; index < 32; index++) {
-//			p_lenth = phone_get(user_info, phone, index);
-//			
-//			if (p_lenth > 0) {
-//				if (REG_NORMAL == BSP_GA6_GetRegSt()) {                       // 模块注册成功
-//					BSP_GA6_SenTextMSG((char*)phone, "Fire Alarm");
-//				}
-//			}
-//		}
+		for (index = 0; index < 32; index++) {
+			p_lenth = phone_get(user_info, phone, index);
+			
+			if (p_lenth > 0) {
+				if (REG_NORMAL == BSP_GA6_GetRegSt()) {                       // 模块注册成功
+					BSP_GA6_SenTextMSG((char*)phone, "Fire Alarm");
+					BSP_UART_Printf(BSP_UART_ID_1, "%s 发送短信成功\r\n", phone);
+				} else
+					BSP_UART_Printf(BSP_UART_ID_1, "发送短信失败\r\n");
+			}
+		}
 
-		BSP_UART_Printf(BSP_UART_ID_1, "发送短信\r\n");
+//		BSP_UART_Printf(BSP_UART_ID_1, "发送短信\r\n");
 		
 		// 保证能取消酱爆，以及警报不会被重复触发
 		
@@ -998,6 +1000,9 @@ static  void  AppTaskBuzzer (void *p_arg)
 			OSSemPost(&StatusSemLock, OS_OPT_POST_1, &err);                   // 释放信号量
 			
 			BSP_BUZZER_Func();
+//			OSTimeDlyHMSM( 0, 0, 0, 6,                                    // 休眠一段时间
+//						   OS_OPT_TIME_HMSM_STRICT,
+//						   &err );
 		} while (0x0F == buzzer_flag);
 		
 		// 关闭蜂鸣器
