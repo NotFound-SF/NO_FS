@@ -56,7 +56,7 @@ void  BSP_POWER_SWITCH_Init (void)
 	
 	gpio_init.GPIO_Mode  = GPIO_Mode_OUT;
 	gpio_init.GPIO_OType = GPIO_OType_OD;
-	gpio_init.GPIO_PuPd  = GPIO_PuPd_UP;
+	gpio_init.GPIO_PuPd  = GPIO_PuPd_NOPULL;
 	gpio_init.GPIO_Speed = GPIO_Speed_25MHz;
 
 	gpio_init.GPIO_Pin   = POWER_SWITCH_PIN;
